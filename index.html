@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Sniper</title>
+  <style>
+    :root {
+      --bg-color: #0b0e14;
+      --card-bg: #121824;
+      --accent-green: #00e676;
+      --accent-blue: #00b0ff;
+      --text-main: #ffffff;
+      --text-muted: #8a9ba8;
+      --border-color: #1e293b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+    .container { width: 100%; max-width: 440px; padding: 20px; }
+    .page { display: none; width: 100%; }
+    .page.active { display: block; }
+    
+    /* Common UI Components */
+    .logo-container { text-align: center; margin-bottom: 24px; }
+    .logo-title { font-size: 26px; font-weight: 700; color: var(--accent-green); display: inline-flex; align-items: center; gap: 8px; }
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; transition: 0.2s; text-decoration: none; display: block; }
+    .btn-green { background: var(--accent-green); color: #000; box-shadow: 0 4px 14px rgba(0,230,118,0.3); }
+    .btn-blue { background: linear-gradient(135deg, #00b0ff, #007acc); color: #fff; box-shadow: 0 4px 14px rgba(0,176,255,0.3); }
+    
+    /* Page 1: Landing */
+    #page-landing { text-align: center; }
+    #page-landing p { color: var(--text-muted); margin-bottom: 30px; font-size: 15px; line-height: 1.5; }
+    
+    /* Page 2 & Intro */
+    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .subtitle { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 20px; }
+    
+    /* Loading States */
+    .loader-container { text-align: center; padding: 60px 0; }
+    .spinner { width: 48px; height: 48px; border: 4px solid var(--border-color); border-top: 4px solid var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Dashboard Header */
+    .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .badge-active { background: rgba(0,230,118,0.1); color: var(--accent-green); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    .badge-active::before { content: ''; width: 6px; height: 6px; background: var(--accent-green); border-radius: 50%; }
+    
+    /* Market Tabs */
+    .market-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px; }
+    .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-muted); padding: 10px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+    .tab-btn.active { background: var(--accent-green); color: #000; border-color: var(--accent-green); }
+
+    /* Prediction Cards */
+    .pred-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 12px; }
+    .pred-circle { width: 80px; height: 80px; background: #ff2a6d; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 15px auto; box-shadow: 0 0 20px rgba(255,42,109,0.3); }
+    .pred-circle span { font-size: 24px; color: #fff; font-weight: bold; }
+    .confidence { color: #f39c12; font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+    .action-tag { display: inline-block; background: rgba(255,42,109,0.2); color: #ff2a6d; border: 1px solid #ff2a6d; padding: 6px 20px; border-radius: 20px; font-weight: bold; font-size: 13px; }
+
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
+    .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 16px; width: 90%; max-width: 360px; }
+    .modal-content input { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; margin: 15px 0; font-size: 16px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- PAGE 1: Landing Page -->
+  <div id="page-landing" class="page active">
+    <div class="logo-container" style="margin-top: 40px;">
+      <div class="logo-title">📈 Market Sniper</div>
+    </div>
+    <p>Connect your Deriv account securely via official OAuth authentication to launch live market signals and automated execution.</p>
+    <button class="btn btn-green" onclick="goToPage('page-dashboard-intro')">Access Tool</button>
+  </div>
+
+  <!-- PAGE 2: Dashboard Intro & Sign In -->
+  <div id="page-dashboard-intro" class="page">
+    <div class="card" style="text-align: center;">
+      <div class="logo-title" style="font-size: 22px; margin-bottom: 10px;">⚡ Market Sniper Tool</div>
+      <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Trading Intelligence Suite</div>
+      <p class="subtitle">Connect your Deriv trading account to unlock live predictive analytics and high-accuracy digit insights.</p>
+      
+      <button class="btn btn-blue" onclick="triggerDerivOAuth()" style="margin-bottom: 20px;">
+        → Sign in with Deriv
+      </button>
+
+      <div style="background: rgba(255,42,109,0.05); border: 1px solid rgba(255,42,109,0.2); padding: 15px; border-radius: 10px; font-size: 12px; color: var(--text-muted); text-align: left; line-height: 1.4;">
+        <strong style="color: #ff2a6d;">RISK DISCLAIMER:</strong> Deriv offers complex derivatives, such as options and contracts for difference ("CFDs"). Trading involves financial risk. Never trade with money you cannot afford to lose.
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 3 & 4: Deriv Loading & Completing Sign In -->
+  <div id="page-loading" class="page">
+    <div class="loader-container">
+      <div class="spinner"></div>
+      <h3 id="loading-text" style="font-weight: 600; margin-bottom: 10px;">Completing sign in...</h3>
+      <p style="color: var(--text-muted); font-size: 13px;">Establishing secure API tunnel & initializing auto-execution...</p>
+    </div>
+  </div>
+
+  <!-- PAGE 5: Main Tool Interface -->
+  <div id="page-main-tool" class="page">
+    <div class="dash-header">
+      <div class="logo-title" style="font-size: 20px;" id="admin-trigger">📈 Market Sniper</div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="badge-active" id="account-badge">Active</span>
+        <button onclick="logoutSession()" style="background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer;" title="Revoke Session">Revoke</button>
+      </div>
+    </div>
+
+    <!-- Market Navigation Tabs -->
+    <div class="market-tabs">
+      <button class="tab-btn active" onclick="switchTab('rise-fall', this)">Rise / Fall</button>
+      <button class="tab-btn" onclick="switchTab('locked-market', this, 'Matches', '100')">🔒 Matches</button>
+      <button class="tab-btn" onclick="switchTab('locked-market', this, 'Even / Odd', '100')">🔒 Even / Odd</button>
+      <button class="tab-btn" onclick="switchTab('locked-market', this, 'Over / Under', '100')">🔒 Over / Under</button>
+      <button class="tab-btn" onclick="switchTab('locked-market', this, 'Higher / Lower', '100')">🔒 Higher / Lower</button>
+    </div>
+
+    <!-- View 1: Rise / Fall Live Market -->
+    <div id="view-rise-fall" class="tool-view">
+      <div class="pred-card">
+        <div style="display: flex; justify-content: space-between; font-weight: 600;">
+          <span>Volatility 10</span>
+          <span style="color: var(--accent-green); font-size: 12px;">• LIVE</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); text-align: left;">R_10</div>
+        <div class="pred-circle">
+          <span>↓</span>
+        </div>
+        <div class="confidence">Confidence: 89%</div>
+        <div class="action-tag">↓ FALL</div>
+      </div>
+
+      <div class="pred-card">
+        <div style="display: flex; justify-content: space-between; font-weight: 600;">
+          <span>Volatility 50</span>
+          <span style="color: var(--accent-green); font-size: 12px;">• LIVE</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); text-align: left;">R_50</div>
+        <div class="pred-circle">
+          <span>↓</span>
+        </div>
+        <div class="confidence">Confidence: 78%</div>
+        <div class="action-tag">↓ FALL</div>
+      </div>
+    </div>
+
+    <!-- View 2: Locked Markets Upgrade Panel -->
+    <div id="view-locked-market" class="tool-view" style="display: none;">
+      <div class="card" style="text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 10px;">🔒</div>
+        <h3 id="locked-title" style="font-size: 18px; margin-bottom: 8px;">Market is not in your plan</h3>
+        <p class="subtitle" style="font-size: 13px;">Add this market as a separate plan — your existing access stays active.</p>
+        
+        <div style="font-size: 18px; font-weight: bold; color: var(--accent-green); margin: 15px 0;" id="locked-price">$100 / YEAR</div>
+
+        <div style="background: var(--bg-color); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: left;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Send via M-Pesa to:</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold;">
+            <span>0792568120</span>
+            <button onclick="copyMpesa()" style="background:none; border:none; color:var(--accent-green); cursor:pointer; font-size:12px;">COPY</button>
+          </div>
+        </div>
+
+        <input type="text" placeholder="Paste transaction ref ID here..." style="width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; margin-bottom: 15px; font-size: 14px;">
+        <button class="btn btn-green" onclick="alert('Unlock request submitted! Waiting for Admin approval.')">Unlock Market</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Admin Password Modal -->
+<div id="admin-modal" class="modal">
+  <div class="modal-content">
+    <h3>Admin Privacy Portal</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">Enter admin password to manage pending locked market requests.</p>
+    <input type="password" id="admin-pass-input" placeholder="Enter password">
+    <button class="btn btn-green" onclick="verifyAdmin()">Authorize Access</button>
+    <button onclick="closeAdminModal()" style="background: none; border: none; color: var(--text-muted); width: 100%; margin-top: 10px; cursor: pointer;">Cancel</button>
+  </div>
+</div>
+
+<script>
+  // Navigation handling
+  function goToPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+  }
+
+  // Deriv OAuth Redirection
+  function triggerDerivOAuth() {
+    goToPage('page-loading');
+    setTimeout(() => {
+      // Directs to official OAuth with your specific App ID and required redirect URI
+      window.location.href = "https://oauth.deriv.com/oauth2/authorize?app_id=34vilFxEI2eZqvcIxwqe&brand=deriv&redirect_uri=https://marketsnipertool.site";
+    }, 1200);
+  }
+
+  // Token Capture & Initialization Logic on page load
+  window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token1');
+    const acct = urlParams.get('acct1');
+
+    if (token) {
+      goToPage('page-loading');
+      document.getElementById('loading-text').innerText = "Initializing Auto-Execution...";
+      
+      localStorage.setItem('deriv_token', token);
+      if (acct) localStorage.setItem('deriv_acct', acct);
+
+      setTimeout(() => {
+        setupUserSession();
+        goToPage('page-main-tool');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }, 1500);
+    } else if (localStorage.getItem('deriv_token')) {
+      setupUserSession();
+      goToPage('page-main-tool');
+    }
+  });
+
+  function setupUserSession() {
+    const accountId = localStorage.getItem('deriv_acct') || 'CR-LIVE-7892';
+    document.getElementById('account-badge').innerText = accountId;
+  }
+
+  function logoutSession() {
+    localStorage.removeItem('deriv_token');
+    localStorage.removeItem('deriv_acct');
+    goToPage('page-landing');
+  }
+
+  // Market Switcher Logic
+  function switchTab(viewName, btnElement, marketName, price) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btnElement.classList.add('active');
+
+    if(viewName === 'rise-fall') {
+      document.getElementById('view-rise-fall').style.display = 'block';
+      document.getElementById('view-locked-market').style.display = 'none';
+    } else {
+      document.getElementById('view-rise-fall').style.display = 'none';
+      document.getElementById('view-locked-market').style.display = 'block';
+      document.getElementById('locked-title').innerText = marketName + " is not in your plan";
+      document.getElementById('locked-price').innerText = "$" + price + " / YEAR " + marketName.toUpperCase();
+    }
+  }
+
+  function copyMpesa() {
+    navigator.clipboard.writeText("0792568120");
+    alert("M-Pesa number copied to clipboard!");
+  }
+
+  // Triple-Tap Admin Trigger Logic
+  let tapCount = 0;
+  let tapTimer = null;
+  document.getElementById('admin-trigger').addEventListener('click', () => {
+    tapCount++;
+    if (tapTimer) clearTimeout(tapTimer);
+    
+    tapTimer = setTimeout(() => {
+      tapCount = 0;
+    }, 600);
+
+    if (tapCount >= 3) {
+      tapCount = 0;
+      document.getElementById('admin-modal').style.display = 'flex';
+    }
+  });
+
+  function verifyAdmin() {
+    const pwd = document.getElementById('admin-pass-input').value;
+    if (pwd === "079256") {
+      alert("Admin Authorized Successfully! Approved requests list unlocked.");
+      document.getElementById('admin-modal').style.display = 'none';
+      document.getElementById('admin-pass-input').value = "";
+    } else {
+      alert("Incorrect Admin Password.");
+    }
+  }
+
+  function closeAdminModal() {
+    document.getElementById('admin-modal').style.display = 'none';
+    document.getElementById('admin-pass-input').value = "";
+  }
+</script>
+
+</body>
+</html>
